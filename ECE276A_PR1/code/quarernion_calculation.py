@@ -14,19 +14,19 @@ def exponential(q):
     qs, qv1, qv2, qv3 = q
     qv = np.array([qv1, qv2, qv3])
     norm = np.linalg.norm(qv)
-
-    if norm < 1e-8:
-        return np.array([1.0, 0.0, 0.0, 0.0])
     
+    if norm < 1e-8:
+        return np.array([np.exp(qs), 0, 0, 0])
+
     vector_part = np.sin(norm) * qv / norm
     scalar_part = np.cos(norm)
     return np.array([scalar_part, vector_part[0], vector_part[1], vector_part[2]])
 
-def motion_model(q_hat, time_stamp, imu_data):
+def motion_model(q, time_stamp, imu_data):
     omega = np.array([imu_data[4], imu_data[5], imu_data[6]])
     vector_part = time_stamp * omega / 2
     exponential_imu = exponential(np.array([0, vector_part[0], vector_part[1], vector_part[2]]))
-    new_q = multiplication(q_hat, exponential_imu)
+    new_q = multiplication(q, exponential_imu)
     return new_q
 
 def hat_mapping(mat):
@@ -60,3 +60,29 @@ def g(q):
     second_term = qs * eye3 - hat_mapping(qv)
     eq = np.concatenate((-qv.reshape(3, 1), second_term), axis=1)
     return eq
+
+def observation_model(q):
+    gravity_ref = np.array([0, 0, 0, 1])
+    q_inv = inverse(q)
+    q_inv_ref = multiplication(q_inv, gravity_ref)
+    observation = multiplication(q_inv_ref, q)
+    return observation
+
+def quaternion_log(q):
+    qs = q[0]
+    qv = q[1:]
+    norm_qv = np.linalg.norm(qv)
+    norm_q = np.linalg.norm(q)
+
+    if norm_qv < 1e-8:
+        return np.array([0.0, 0.0, 0.0, 0.0])
+    
+    scalar_part = np.log(norm_q)
+    vector_part = (qv / norm_qv) * (np.arccos(qs / norm_q))
+
+    return np.array([scalar_part, vector_part[0], vector_part[1], vector_part[2]])
+
+def inverse(q):
+    q_bar = np.array([q[0], -q[1], -q[2], -q[3]])
+    norm_q = np.linalg.norm(q)
+    return q_bar / (norm_q**2)
