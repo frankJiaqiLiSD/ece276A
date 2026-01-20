@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import transforms3d.euler as eul
 import imu_calibration as ic
 import quarernion_calculation as qc
+import orientation_estimate as oe
 
 
 q_t = np.array([1, 0, 0, 0])
@@ -20,6 +21,8 @@ for i in range(num_samples - 1):
     q_tp1 = qc.motion_model(q_t, tau, calibrated_imu[:, i])
     all_qs.append(q_tp1)
     q_t = q_tp1
+
+
 
 predicted_rotation_matrices = np.array([qc.quaternion_to_rotation_matrix(q) for q in all_qs])
 predicted_angles = np.array([eul.mat2euler(R) for R in predicted_rotation_matrices])
