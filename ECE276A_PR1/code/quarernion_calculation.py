@@ -15,7 +15,7 @@ def multiplication(q1, q2):
 def exponential(q):
     qs, qv1, qv2, qv3 = q
     qv = torch.stack([qv1, qv2, qv3])
-    norm = quaternion_norm(qv)
+    norm = torch.norm(qv)
     
     if norm < 1e-8:
         return torch.tensor([torch.exp(qs), 0, 0, 0])
@@ -25,9 +25,9 @@ def exponential(q):
     exponential = torch.stack([scalar_part, vector_part[0], vector_part[1], vector_part[2]])
     return exponential
 
-def motion_model(q, time_stamp, imu_data):
-    omega = torch.tensor([imu_data[4], imu_data[5], imu_data[6]])
-    vector_part = time_stamp * omega / 2
+def motion_model(q, tau, imu_data):
+    omega = torch.stack([imu_data[4], imu_data[5], imu_data[6]])
+    vector_part = tau * omega / 2
     zero_tensor = torch.tensor(0.0)
     exp_input = torch.stack([zero_tensor, vector_part[0], vector_part[1], vector_part[2]])
     exponential_imu = exponential(exp_input)
