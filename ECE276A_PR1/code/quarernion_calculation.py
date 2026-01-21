@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 
 def multiplication(q1, q2):
     # Source: https://stackoverflow.com/questions/39000758/how-to-multiply-two-quaternions-by-python-or-numpy
@@ -8,29 +8,34 @@ def multiplication(q1, q2):
     x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
     y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
     z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
-    return np.array([w, x, y, z])
+
+    q = torch.stack([w, x, y, z])
+    return q
 
 def exponential(q):
     qs, qv1, qv2, qv3 = q
-    qv = np.array([qv1, qv2, qv3])
-    norm = np.linalg.norm(qv)
+    qv = torch.stack([qv1, qv2, qv3])
+    norm = quaternion_norm(qv)
     
     if norm < 1e-8:
-        return np.array([np.exp(qs), 0, 0, 0])
+        return torch.tensor([torch.exp(qs), 0, 0, 0])
 
-    vector_part = np.sin(norm) * qv / norm
-    scalar_part = np.cos(norm)
-    return np.array([scalar_part, vector_part[0], vector_part[1], vector_part[2]])
+    vector_part = torch.sin(norm) * qv / norm
+    scalar_part = torch.cos(norm)
+    exponential = torch.stack([scalar_part, vector_part[0], vector_part[1], vector_part[2]])
+    return exponential
 
 def motion_model(q, time_stamp, imu_data):
-    omega = np.array([imu_data[4], imu_data[5], imu_data[6]])
+    omega = torch.tensor([imu_data[4], imu_data[5], imu_data[6]])
     vector_part = time_stamp * omega / 2
-    exponential_imu = exponential(np.array([0, vector_part[0], vector_part[1], vector_part[2]]))
+    zero_tensor = torch.tensor(0.0)
+    exp_input = torch.stack([zero_tensor, vector_part[0], vector_part[1], vector_part[2]])
+    exponential_imu = exponential(exp_input)
     new_q = multiplication(q, exponential_imu)
     return new_q
 
 def hat_mapping(mat):
-    output_mat = np.zeros((3, 3))
+    output_mat = torch.zeros(3, 3)
     output_mat[0, 1] = -mat[2]
     output_mat[0, 2] = mat[1]
     output_mat[1, 0] = mat[2]
@@ -46,23 +51,23 @@ def quaternion_to_rotation_matrix(q):
     return rq
 
 def e(q):
-    eye3 = np.eye(3)
+    eye3 = torch.eye(3)
     qs = q[0]
     qv = q[1:]
     second_term = qs * eye3 + hat_mapping(qv)
-    eq = np.concatenate((-qv.reshape(3, 1), second_term), axis=1)
+    eq = torch.cat((-qv.view(3, 1), second_term), dim=1)
     return eq
 
 def g(q):
-    eye3 = np.eye(3)
+    eye3 = torch.eye(3)
     qs = q[0]
     qv = q[1:]
     second_term = qs * eye3 - hat_mapping(qv)
-    eq = np.concatenate((-qv.reshape(3, 1), second_term), axis=1)
-    return eq
+    gq = torch.cat((-qv.view(3, 1), second_term), dim=1)
+    return gq
 
 def observation_model(q):
-    gravity_ref = np.array([0, 0, 0, 1])
+    gravity_ref = torch.tensor([0.0, 0.0, 0.0, 1.0])
     q_inv = inverse(q)
     q_inv_ref = multiplication(q_inv, gravity_ref)
     observation = multiplication(q_inv_ref, q)
@@ -71,18 +76,27 @@ def observation_model(q):
 def quaternion_log(q):
     qs = q[0]
     qv = q[1:]
-    norm_qv = np.linalg.norm(qv)
-    norm_q = np.linalg.norm(q)
+    norm_qv = torch.norm(qv)
+    norm_q = torch.norm(q)
 
     if norm_qv < 1e-8:
-        return np.array([0.0, 0.0, 0.0, 0.0])
+        return torch.tensor([0.0, 0.0, 0.0, 0.0])
     
-    scalar_part = np.log(norm_q)
-    vector_part = (qv / norm_qv) * (np.arccos(qs / norm_q))
+    scalar_part = torch.log(norm_q)
+    vector_part = (qv / norm_qv) * (torch.acos(qs / norm_q))
 
-    return np.array([scalar_part, vector_part[0], vector_part[1], vector_part[2]])
+    return torch.cat((scalar_part.unsqueeze(0), vector_part))
 
 def inverse(q):
-    q_bar = np.array([q[0], -q[1], -q[2], -q[3]])
-    norm_q = np.linalg.norm(q)
+    q_bar = torch.cat((q[0:1], -q[1:]))
+    norm_q = torch.linalg.norm(q)
     return q_bar / (norm_q**2)
+
+def quaternion_norm(q):
+    qs = q[0]
+    qv = q[1:]
+    qs_sq = qs ** 2
+    transpose_multiply = torch.dot(qv, qv)
+    norm = torch.sqrt(qs_sq + transpose_multiply)
+
+    return norm
