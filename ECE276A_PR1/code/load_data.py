@@ -1,13 +1,7 @@
 import pickle
 import sys
-import time 
 
-def tic():
-  return time.time()
-def toc(tstart, nm=""):
-  print('%s took: %s sec.\n' % (nm,(time.time() - tstart)))
-
-def read_data(fname):
+def read_file(fname):
   d = []
   with open(fname, 'rb') as f:
     if sys.version_info[0] < 3:
@@ -16,13 +10,17 @@ def read_data(fname):
       d = pickle.load(f, encoding='latin1')  # needed for python 3
   return d
 
-dataset="5"
-# cfile = "../ECE276A_PR1/data/trainset/cam/cam" + dataset + ".p"
-ifile = "../ECE276A_PR1/data/trainset/imu/imuRaw" + dataset + ".p"
-vfile = "../ECE276A_PR1/data/trainset/vicon/viconRot" + dataset + ".p"
+def get_data(dataset_num):
+  # cfile = "../ECE276A_PR1/data/trainset/cam/cam" + dataset_num + ".p"
+  ifile = "../ECE276A_PR1/data/trainset/imu/imuRaw" + dataset_num + ".p"
+  vfile = "../ECE276A_PR1/data/trainset/vicon/viconRot" + dataset_num + ".p"
 
-ts = tic()
-# camd = read_data(cfile)
-imud = read_data(ifile)
-vicd = read_data(vfile)
-# toc(ts,"Data import")
+  # camd = read_file(cfile)
+  imud = read_file(ifile)
+  vicd = read_file(vfile)
+
+  return [imud, vicd]
+
+
+
+
