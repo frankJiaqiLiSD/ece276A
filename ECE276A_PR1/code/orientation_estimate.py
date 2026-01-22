@@ -43,7 +43,7 @@ def gradient_descent(q_array, imu_data):
     #     norm = torch.norm(new_q_array, dim=1, keepdim=True)
     #     q = new_q_array / norm
     
-    num_of_epoch = 2
+    num_of_epoch = 20
     step_length = 0.1
     q = q_array.detach().clone()
 

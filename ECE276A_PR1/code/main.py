@@ -1,3 +1,4 @@
+from turtle import color
 import load_data as ld
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,124 +8,96 @@ import quarernion_calculation as qc
 import orientation_estimate as oe
 import torch
 
-
-def get_nearest_index(target_time, timestamp_array):
-    idx = (np.abs(timestamp_array - target_time)).argmin()
-    return idx
+#--------start timing---
+import time
+t0 = time.perf_counter()
+#-----------------------
 
 q_t = torch.tensor([1,0,0,0])
 all_qs = [q_t]
 
 imu_data = ld.imud
 vic_data = ld.vicd
-num_samples = min(imu_data.shape[1], vic_data['rots'].shape[2])
-calibrated_imu = ic.imu_calibration(imu_data)
+num_sample_imu = imu_data.shape[1]
+num_sample_vic = vic_data['ts'][0].shape[0]
+
+
+calibrated_imu = ic.imu_calibration(imu_data, 300)
 calibrated_imu = torch.tensor(calibrated_imu)
 
+imu_time = imu_data[0]
+imu_rel  = imu_time - imu_data[0][0]
+vic_time = vic_data['ts'][0]
+
+
 # Calculating the predicted quaternions
-for i in range(num_samples - 1):
+for i in range(num_sample_imu - 1):
     tau = imu_data[0, i+1] - imu_data[0, i]
     q_tp1 = qc.motion_model(q_t, tau, calibrated_imu[:, i])
     all_qs.append(q_tp1)
     q_t = q_tp1
 q_torch = torch.stack(all_qs)
-# print(calibrated_imu.shape[1])
-# print(q_torch.shape[0])
-# print(oe.cost_function(q_torch,calibrated_imu).item())
-# print(oe.gradient(q_torch,calibrated_imu))
 
-# predicted_q = oe.gradient_descent(q_torch, calibrated_imu)
+predicted_q_opt = oe.gradient_descent(q_torch, calibrated_imu)
 predicted_q = q_torch
-# print(predicted_q)
 
-# print(vic_data['ts'][0])
-# print(imu_data[0])
-
-# time_1 = np.array(vic_data['ts'][0][0])
-# time_2 = np.array(imu_data[0][-1])
-# time_3 = np.array(vic_data['ts'][0][0])
-# time_4 = np.array(imu_data[0][-1])
-
-# print(time_1 - time_2)
-# print(time_3 - time_4)
-
-# predicted_rotation_matrices = np.array([qc.quaternion_to_rotation_matrix(q) for q in all_qs])
+# predicted angles for plotting
 predicted_rotation_matrices = np.array([qc.quaternion_to_rotation_matrix(q).detach().numpy() for q in predicted_q])
-predicted_angles = np.array([eul.mat2euler(np.asarray(R)) for R in predicted_rotation_matrices])
+predicted_angles_rad = np.array([eul.mat2euler(np.asarray(R)) for R in predicted_rotation_matrices])
+predicted_angles_deg = np.degrees(predicted_angles_rad)
+
+predicted_roll =    predicted_angles_deg[:, 0].round(2)
+predicted_pitch =   predicted_angles_deg[:, 1].round(2)
+predicted_yaw =     predicted_angles_deg[:, 2].round(2)
 
 
-# true_angles = np.array([eul.mat2euler(vic_data['rots'][:, :, i]) for i in range(num_samples)])
-
-# predicted_angles_deg = np.degrees(np.unwrap(predicted_angles, axis=0))
-# true_angles_deg = np.degrees(np.unwrap(true_angles, axis=0))
-
-predicted_angles_deg = np.degrees(predicted_angles)
-# true_angles_deg = np.degrees(true_angles)
-
-predicted_roll = predicted_angles_deg[:, 0]
-predicted_pitch = predicted_angles_deg[:, 1]
-predicted_yaw = predicted_angles_deg[:, 2]
-
-# true_roll = true_angles_deg[:, 0]
-# true_pitch = true_angles_deg[:, 1]
-# true_yaw = true_angles_deg[:, 2]
-
-# === NEW ALIGNMENT CODE START ===
-
-# 1. Get all timestamps
-# IMU timestamps (corresponding to your predicted_angles)
-imu_ts = imu_data[0, :num_samples] 
-
-# Vicon timestamps (ensure it's a 1D array)
-# Check shape: vic_data['ts'] might be (1, N) or (N,)
-vic_ts = vic_data['ts']
-if vic_ts.ndim > 1:
-    vic_ts = vic_ts.flatten()
-
-# 2. Pre-calculate ALL Vicon Euler angles (ground truth source)
-# We need the full set to look up the correct values
-num_vic_samples = vic_data['rots'].shape[2]
-all_vicon_angles = np.array([eul.mat2euler(vic_data['rots'][:, :, i]) for i in range(num_vic_samples)])
-all_vicon_deg = np.degrees(all_vicon_angles) # Shape: (N_vicon, 3)
-
-# 3. Align Vicon data to IMU timestamps
-aligned_true_roll = []
-aligned_true_pitch = []
-aligned_true_yaw = []
-
-print("Aligning timestamps... this may take a moment.")
-for t in imu_ts:
-    # Find the index in Vicon data closest to the current IMU timestamp
-    nearest_idx = get_nearest_index(t, vic_ts)
-    
-    # Grab the ground truth from that index
-    r, p, y = all_vicon_deg[nearest_idx]
-    
-    aligned_true_roll.append(r)
-    aligned_true_pitch.append(p)
-    aligned_true_yaw.append(y)
-
-# Convert to numpy arrays for plotting
-true_roll = np.array(aligned_true_roll)
-true_pitch = np.array(aligned_true_pitch)
-true_yaw = np.array(aligned_true_yaw)
-
-# === NEW ALIGNMENT CODE END ===
+# true angles for plotting
+true_rotation_matrices = vic_data['rots']
+true_angles_rad = np.array([eul.mat2euler(vic_data['rots'][:, :, i]) for i in range(num_sample_vic)])
+true_angles_deg = np.degrees(true_angles_rad)
 
 
+true_roll =    true_angles_deg[:, 0]
+true_pitch =   true_angles_deg[:, 1]
+true_yaw =     true_angles_deg[:, 2]
 
-fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 6), sharex=True)
+aligned_true_roll  = np.interp(imu_time, vic_time, true_roll)
+aligned_true_pitch = np.interp(imu_time, vic_time, true_pitch)
+aligned_true_yaw   = np.interp(imu_time, vic_time, true_yaw)
 
-ax1.plot(predicted_roll, label='Predicted Roll')
-ax1.plot(true_roll, label='True Roll')
+
+# optimized for plotting
+predicted_rotation_matrices_opt = np.array([qc.quaternion_to_rotation_matrix(q).detach().numpy() for q in predicted_q_opt])
+predicted_angles_rad_opt = np.array([eul.mat2euler(np.asarray(R)) for R in predicted_rotation_matrices_opt])
+predicted_angles_deg_opt = np.degrees(predicted_angles_rad_opt)
+
+predicted_roll_opt =    predicted_angles_deg_opt[:, 0].round(2)
+predicted_pitch_opt =   predicted_angles_deg_opt[:, 1].round(2)
+predicted_yaw_opt =     predicted_angles_deg_opt[:, 2].round(2)
+
+
+#-----------end timing------------
+t1 = time.perf_counter()
+print(f"Elapsed: {t1 - t0:.6f} s")
+#---------------------------------
+
+
+# plotting out compare diagram
+fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(30,18), sharex=True)
+
+ax1.plot(imu_rel, predicted_roll, label='Predicted Roll', color = 'r')
+ax1.plot(imu_rel, aligned_true_roll, label='True Roll', color = 'b')
+ax1.plot(imu_rel, predicted_roll_opt, label='Predicted Roll Optimized', color = 'g')
 ax1.legend()
 
-ax2.plot(predicted_pitch, label='Predicted Pitch')
-ax2.plot(true_pitch, label='True Pitch')
+ax2.plot(imu_rel, predicted_pitch, label='Predicted Pitch', color = 'r')
+ax2.plot(imu_rel, aligned_true_pitch, label='True Pitch', color = 'b')
+ax2.plot(imu_rel, predicted_pitch_opt, label='Predicted Pitch Optimized', color = 'g')
 ax2.legend()
 
-ax3.plot(predicted_yaw, label='Predicted Yaw')
-ax3.plot(true_yaw, label='True Yaw')
+ax3.plot(imu_rel, predicted_yaw, label='Predicted Yaw', color = 'r')
+ax3.plot(imu_rel, aligned_true_yaw, label='True Yaw', color = 'b')
+ax3.plot(imu_rel, predicted_yaw_opt, label='Predicted Yaw Optimized', color = 'g')
 ax3.legend()
 
 plt.show()

@@ -16,7 +16,7 @@ def read_data(fname):
       d = pickle.load(f, encoding='latin1')  # needed for python 3
   return d
 
-dataset="7"
+dataset="5"
 # cfile = "../ECE276A_PR1/data/trainset/cam/cam" + dataset + ".p"
 ifile = "../ECE276A_PR1/data/trainset/imu/imuRaw" + dataset + ".p"
 vfile = "../ECE276A_PR1/data/trainset/vicon/viconRot" + dataset + ".p"
