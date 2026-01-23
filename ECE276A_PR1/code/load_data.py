@@ -11,15 +11,15 @@ def read_file(fname):
   return d
 
 def get_data(dataset_num):
-  # cfile = "../ECE276A_PR1/data/trainset/cam/cam" + dataset_num + ".p"
+  cfile = "../ECE276A_PR1/data/trainset/cam/cam" + dataset_num + ".p"
   ifile = "../ECE276A_PR1/data/trainset/imu/imuRaw" + dataset_num + ".p"
   vfile = "../ECE276A_PR1/data/trainset/vicon/viconRot" + dataset_num + ".p"
 
-  # camd = read_file(cfile)
+  camd = read_file(cfile)
   imud = read_file(ifile)
   vicd = read_file(vfile)
 
-  return [imud, vicd]
+  return [camd, imud, vicd]
 
 
 

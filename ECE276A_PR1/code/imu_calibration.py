@@ -39,7 +39,7 @@ def imu_calibration_accel(imu_data, calib_range):
     a_y = (a_y - bias_ay)*scale_factor_a
     a_z = (a_z - bias_az)*scale_factor_a
 
-    return(a_x, a_y, a_z)
+    return(a_x,a_y, a_z)
 
 def imu_calibration(imu_data, calib_range):
     a_x, a_y, a_z = imu_calibration_accel(imu_data, calib_range)

@@ -59,10 +59,10 @@ def rotplot(R, currentAxes=None):
 
 
 # Example usage: Putting two rotations on one graph
-# REye = np.eye(3)
-# ax = rotplot(REye)
+REye = np.eye(3)
+ax = rotplot(REye)
 
-# RTurn = np.array([[np.cos(np.pi/2),0,np.sin(np.pi/2)],[0,1,0],[-np.sin(np.pi/2),0,np.cos(np.pi/2)]])
+RTurn = np.array([[np.cos(np.pi/2),0,np.sin(np.pi/2)],[0,1,0],[-np.sin(np.pi/2),0,np.cos(np.pi/2)]])
 
-# rotplot(RTurn,ax)
-# plt.show()
+rotplot(RTurn,ax)
+plt.show()

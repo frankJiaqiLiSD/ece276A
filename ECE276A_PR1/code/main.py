@@ -1,3 +1,5 @@
+from cProfile import label
+from scipy.integrate import lebedev_rule
 import load_data as ld
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,10 +14,14 @@ import time
 t0 = time.perf_counter()
 
 # Loading and Preparing Data
-dataset = '8'
+dataset = '1'
 cam_data = ld.get_data(dataset)[0]
-imu_data = ld.get_data(dataset)[0]
-vic_data = ld.get_data(dataset)[1]
+imu_data = ld.get_data(dataset)[1]
+vic_data = ld.get_data(dataset)[2]
+
+#cam_data['cam'].shape[3]
+# print(cam_data['cam'][:,:,:,0])
+
 
 # Defining how many samples available
 num_sample_imu = imu_data.shape[1]
@@ -44,23 +50,23 @@ predicted_q_opt = oe.gradient_descent(q_torch, calibrated_imu)
 # Converting quaternion values to rotation matrices, then convert to roll/pitch/yaw values in degrees
 predicted_rotation_matrices = np.array([qc.quaternion_to_rotation_matrix(q).detach().numpy() for q in predicted_q])
 predicted_angles_rad = np.array([eul.mat2euler(np.asarray(R)) for R in predicted_rotation_matrices])
-predicted_roll =    np.degrees(np.unwrap(predicted_angles_rad[:, 0]))
-predicted_pitch =   np.degrees(np.unwrap(predicted_angles_rad[:, 1]))
-predicted_yaw =     np.degrees(np.unwrap(predicted_angles_rad[:, 2]))
+predicted_roll =    np.degrees(predicted_angles_rad[:, 0])
+predicted_pitch =   np.degrees(predicted_angles_rad[:, 1])
+predicted_yaw =     np.degrees(predicted_angles_rad[:, 2])
 
 # Converting optimized quanternion values to rotation matrices, and then to roll/pitch/yaw values in degrees
 predicted_rotation_matrices_opt = np.array([qc.quaternion_to_rotation_matrix(q).detach().numpy() for q in predicted_q_opt])
 predicted_angles_rad_opt = np.array([eul.mat2euler(np.asarray(R)) for R in predicted_rotation_matrices_opt])
-predicted_roll_opt =    np.degrees(np.unwrap(predicted_angles_rad_opt[:, 0]))
-predicted_pitch_opt =   np.degrees(np.unwrap(predicted_angles_rad_opt[:, 1]))
-predicted_yaw_opt =     np.degrees(np.unwrap(predicted_angles_rad_opt[:, 2]))
+predicted_roll_opt =    np.degrees(predicted_angles_rad_opt[:, 0])
+predicted_pitch_opt =   np.degrees(predicted_angles_rad_opt[:, 1])
+predicted_yaw_opt =     np.degrees(predicted_angles_rad_opt[:, 2])
 
 # Converting rotation matrices got from VICON data and converting to roll/pitch/yaw values in degrees
 true_rotation_matrices = vic_data['rots']
 true_angles_rad = np.array([eul.mat2euler(vic_data['rots'][:, :, i]) for i in range(num_sample_vic)])
-true_roll  =    np.degrees(np.unwrap(true_angles_rad[:, 0]))
-true_pitch =    np.degrees(np.unwrap(true_angles_rad[:, 1]))
-true_yaw   =    np.degrees(np.unwrap(true_angles_rad[:, 2]))
+true_roll  =    np.degrees(true_angles_rad[:, 0])
+true_pitch =    np.degrees(true_angles_rad[:, 1])
+true_yaw   =    np.degrees(true_angles_rad[:, 2])
 
 # Get the timeline of IMU and VICON data, and align them to avoid drifting in plotting
 imu_time = imu_data[0]
