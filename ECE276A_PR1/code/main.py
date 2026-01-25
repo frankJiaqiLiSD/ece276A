@@ -1,5 +1,3 @@
-from cProfile import label
-from scipy.integrate import lebedev_rule
 import load_data as ld
 import numpy as np
 import matplotlib.pyplot as plt
