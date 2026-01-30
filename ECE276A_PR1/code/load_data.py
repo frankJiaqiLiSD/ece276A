@@ -11,16 +11,25 @@ def read_file(fname):
   return d
 
 def get_data(dataset_num):
-  cfile = "../ECE276A_PR1/data/trainset/cam/cam" + dataset_num + ".p"
-  ifile = "../ECE276A_PR1/data/trainset/imu/imuRaw" + dataset_num + ".p"
-  vfile = "../ECE276A_PR1/data/trainset/vicon/viconRot" + dataset_num + ".p"
+  ds = int(dataset_num)
+  cam_list = [1,2,8,9]
+  if ds in cam_list:
+    dataset_num = str(dataset_num)
+    cfile = "../ECE276A_PR1/data/trainset/cam/cam" + dataset_num + ".p"
+    ifile = "../ECE276A_PR1/data/trainset/imu/imuRaw" + dataset_num + ".p"
+    vfile = "../ECE276A_PR1/data/trainset/vicon/viconRot" + dataset_num + ".p"
 
-  camd = read_file(cfile)
-  imud = read_file(ifile)
-  vicd = read_file(vfile)
+    camd = read_file(cfile)
+    imud = read_file(ifile)
+    vicd = read_file(vfile)
 
-  return [camd, imud, vicd]
+    return [camd, imud, vicd]
+  else:
+    ifile = "../ECE276A_PR1/data/trainset/imu/imuRaw" + dataset_num + ".p"
+    vfile = "../ECE276A_PR1/data/trainset/vicon/viconRot" + dataset_num + ".p"
 
+    camd = []
+    imud = read_file(ifile)
+    vicd = read_file(vfile)
 
-
-
+    return [camd, imud, vicd]

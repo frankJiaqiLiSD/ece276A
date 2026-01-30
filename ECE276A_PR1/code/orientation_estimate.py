@@ -24,34 +24,18 @@ def cost_function(q_array, imu_data):
     
     return motion_model_error + observation_model_error
 
-
 def gradient(q_array, imu_data):
-    # cost_wrapper = lambda q: cost_function(q, imu_data)
-    # grad_tensor = torch.autograd.functional.jacobian(cost_wrapper, q_array)
-    cost = cost_function(q_array, imu_data)           
-    (grad,) = torch.autograd.grad(cost, q_array)     
-    return grad
+    cost_wrapper = lambda q: cost_function(q, imu_data)
+    grad_tensor = torch.autograd.functional.jacobian(cost_wrapper, q_array)    
+    return grad_tensor
 
-def gradient_descent(q_array, imu_data):
-    # num_of_epoch = 2
-    # step_length = 0.1
-    # q = q_array.detach().clone()
-
-    # for _ in range(num_of_epoch):
-    #     grad = gradient(q, imu_data)
-    #     new_q_array = q + step_length*grad
-    #     norm = torch.norm(new_q_array, dim=1, keepdim=True)
-    #     q = new_q_array / norm
-    
-    num_of_epoch = 10
-    step_length = 0.1
+def gradient_descent(q_array, imu_data, num_of_epoch, step_length):
     q = q_array.detach().clone()
 
     for _ in range(num_of_epoch):
-        q = q.detach().clone().requires_grad_(True)
-        grad_dir = gradient(q, imu_data)
-        with torch.no_grad():
-            q = q - step_length * grad_dir
-            q = q / torch.norm(q, dim=1, keepdim=True)
+        grad = gradient(q, imu_data)
+        new_q_array = q - step_length*grad
+        norm = torch.norm(new_q_array, dim=1, keepdim=True)
+        q = new_q_array / norm
 
     return q.detach()
