@@ -37,10 +37,15 @@ def motion_predict(dataset):
     q_torch = torch.stack(all_q)
 
     # Prepare data before optimization and after optimization for later plotting
-    num_of_epoch = 15
-    step_length = 0.1
+    num_of_epoch = 10
+    step_length  = 0.1
     predicted_q = q_torch
     predicted_q_opt = oe.gradient_descent(q_torch, calibrated_imu, num_of_epoch, step_length, dataset)
+
+    # Train for 5 more times with less step sizes
+    num_of_epoch = 5
+    step_length  = 0.01
+    predicted_q_opt = oe.gradient_descent(predicted_q_opt, calibrated_imu, num_of_epoch, step_length, dataset)
 
     # Converting quaternion values to rotation matrices, then convert to roll/pitch/yaw values in degrees
     predicted_rotation_matrices = np.array([qc.quaternion_to_rotation_matrix(q).detach().numpy() for q in predicted_q])

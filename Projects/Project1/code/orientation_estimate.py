@@ -34,13 +34,20 @@ def gradient(q_array, imu_data):
 def gradient_descent(q_array, imu_data, num_of_epoch, step_length, dataset):
     q = q_array.detach().clone()
     loss = []
+    prev_loss = cost_function(q, imu_data).item()
 
     for _ in range(num_of_epoch):
         grad = gradient(q, imu_data)
         new_q_array = q - step_length*grad
         norm = torch.norm(new_q_array, dim=1, keepdim=True)
-        q = new_q_array / norm
-        loss.append(cost_function(q, imu_data).item())
+        new_q_array = new_q_array / norm
+        new_loss = cost_function(new_q_array, imu_data).item()
+
+        if new_loss < prev_loss:
+            q = new_q_array
+            prev_loss = new_loss
+        
+        loss.append(prev_loss)
 
     plt.figure()
     plt.plot(loss, color = 'b')
