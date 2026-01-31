@@ -56,20 +56,22 @@ def motion_predict(dataset):
     predicted_pitch_opt =   np.degrees(predicted_angles_rad_opt[:, 1])
     predicted_yaw_opt =     np.degrees(predicted_angles_rad_opt[:, 2])
 
-    # Converting rotation matrices got from VICON data and converting to roll/pitch/yaw values in degrees
-    true_angles_rad = np.array([eul.mat2euler(vic_data['rots'][:, :, i]) for i in range(num_sample_vic)])
-    true_roll  =    np.degrees(true_angles_rad[:, 0])
-    true_pitch =    np.degrees(true_angles_rad[:, 1])
-    true_yaw   =    np.degrees(true_angles_rad[:, 2])
+    vic_list = [1,2,3,4,5,6,7,8,9]
+    if int(dataset) in vic_list:
+        # Converting rotation matrices got from VICON data and converting to roll/pitch/yaw values in degrees
+        true_angles_rad = np.array([eul.mat2euler(vic_data['rots'][:, :, i]) for i in range(num_sample_vic)])
+        true_roll  =    np.degrees(true_angles_rad[:, 0])
+        true_pitch =    np.degrees(true_angles_rad[:, 1])
+        true_yaw   =    np.degrees(true_angles_rad[:, 2])
 
-    # Get the timeline of IMU and VICON data, and align them to avoid drifting in plotting
-    imu_time = imu_data[0]
-    vic_time = vic_data['ts'][0]
-    aligned_true_roll  = np.interp(imu_time, vic_time, true_roll)
-    aligned_true_pitch = np.interp(imu_time, vic_time, true_pitch)
-    aligned_true_yaw   = np.interp(imu_time, vic_time, true_yaw)
+        # Get the timeline of IMU and VICON data, and align them to avoid drifting in plotting
+        imu_time = imu_data[0]
+        vic_time = vic_data['ts'][0]
+        aligned_true_roll  = np.interp(imu_time, vic_time, true_roll)
+        aligned_true_pitch = np.interp(imu_time, vic_time, true_pitch)
+        aligned_true_yaw   = np.interp(imu_time, vic_time, true_yaw)
 
-    cam_list = [1,2,8,9]
+    cam_list = [1,2,8,9,10,11]
     if int(dataset) in cam_list:
         predicted_rotation_matrices_opt = predicted_rotation_matrices_opt.transpose(1,2,0)
 
@@ -80,32 +82,41 @@ def motion_predict(dataset):
         pa.draw_panorama(coordinate, cam_data, pano_path)
 
     os.makedirs("img", exist_ok=True)
-    # Plotting out values
+    # Plotting out values (with ground true data available)
     # imu_rel -> IMU relative time: used to make the plotting looks better
     imu_rel  = imu_time - imu_data[0][0]
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10,6), sharex=True)
 
-    ax1.set_title("True Roll(blue) vs Estimated Roll(red) vs Optimized Estimated Roll(green) in Degrees")
     ax1.plot(imu_rel, predicted_roll, color = 'r')
-    ax1.plot(imu_rel, aligned_true_roll, color = 'b')
     ax1.plot(imu_rel, predicted_roll_opt, color = 'g')
+    if int(dataset) in vic_list:
+        ax1.set_title("True Roll(blue) vs Estimated Roll(red) vs Optimized Estimated Roll(green) in Degrees")
+        ax1.plot(imu_rel, aligned_true_roll, color = 'b')
+    else:
+        ax1.set_title("Estimated Roll(red) vs Optimized Estimated Roll(green) in Degrees")
 
-    ax2.set_title("True Pitch(blue) vs Estimated Pitch(red) vs Optimized Estimated Pitch(green) in Degrees")
     ax2.plot(imu_rel, predicted_pitch, color = 'r')
-    ax2.plot(imu_rel, aligned_true_pitch, color = 'b')
     ax2.plot(imu_rel, predicted_pitch_opt, color = 'g')
+    if int(dataset) in vic_list:
+        ax2.set_title("True Pitch(blue) vs Estimated Pitch(red) vs Optimized Estimated Pitch(green) in Degrees")
+        ax2.plot(imu_rel, aligned_true_pitch, color = 'b')
+    else:
+        ax2.set_title("Estimated Pitch(red) vs Optimized Estimated Pitch(green) in Degrees")
 
-    ax3.set_title("True Yaw(blue) vs Estimated Yaw(red) vs Optimized Estimated Yaw(green) in Degrees")
     ax3.plot(imu_rel, predicted_yaw, color = 'r')
-    ax3.plot(imu_rel, aligned_true_yaw, color = 'b')
     ax3.plot(imu_rel, predicted_yaw_opt, color = 'g')
+    if int(dataset) in vic_list:
+        ax3.set_title("True Yaw(blue) vs Estimated Yaw(red) vs Optimized Estimated Yaw(green) in Degrees")
+        ax3.plot(imu_rel, aligned_true_yaw, color = 'b')
+    else:
+        ax3.set_title("Estimated Yaw(red) vs Optimized Estimated Yaw(green) in Degrees")
 
     plot_path = f"img/Dataset {str(dataset)}_rpy.png"
     fig.savefig(plot_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
 
 if __name__ == "__main__":
-    num_of_datasets = 9
+    num_of_datasets = 11
     for dataset in range(1, num_of_datasets+1):
         t_start = time.time()
         motion_predict(str(dataset))

@@ -12,24 +12,35 @@ def read_file(fname):
 
 def get_data(dataset_num):
   ds = int(dataset_num)
-  cam_list = [1,2,8,9]
-  if ds in cam_list:
+  cam_list = [1,2,8,9,10,11]
+  vic_list = [1,2,3,4,5,6,7,8,9]
+  if (ds in cam_list) and (ds in vic_list):
     dataset_num = str(dataset_num)
-    cfile = "../Project1/data/trainset/cam/cam" + dataset_num + ".p"
-    ifile = "../Project1/data/trainset/imu/imuRaw" + dataset_num + ".p"
-    vfile = "../Project1/data/trainset/vicon/viconRot" + dataset_num + ".p"
+    cfile = "../Project1/data/cam/cam" + dataset_num + ".p"
+    ifile = "../Project1/data/imu/imuRaw" + dataset_num + ".p"
+    vfile = "../Project1/data/vicon/viconRot" + dataset_num + ".p"
 
     camd = read_file(cfile)
     imud = read_file(ifile)
     vicd = read_file(vfile)
 
     return [camd, imud, vicd]
-  else:
-    ifile = "../Project1/data/trainset/imu/imuRaw" + dataset_num + ".p"
-    vfile = "../Project1/data/trainset/vicon/viconRot" + dataset_num + ".p"
+  elif (ds not in cam_list) and (ds in vic_list):
+    dataset_num = str(dataset_num)
+    ifile = "../Project1/data/imu/imuRaw" + dataset_num + ".p"
+    vfile = "../Project1/data/vicon/viconRot" + dataset_num + ".p"
 
     camd = []
     imud = read_file(ifile)
     vicd = read_file(vfile)
+    return [camd, imud, vicd]
+  else:
+    dataset_num = str(dataset_num)
+    cfile = "../Project1/data/cam/cam" + dataset_num + ".p"
+    ifile = "../Project1/data/imu/imuRaw" + dataset_num + ".p"
+
+    camd = read_file(cfile)
+    imud = read_file(ifile)
+    vicd = []
 
     return [camd, imud, vicd]
