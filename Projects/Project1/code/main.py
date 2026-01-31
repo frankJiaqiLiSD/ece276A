@@ -16,9 +16,13 @@ def motion_predict(dataset):
     vic_data = ld.get_data(dataset)[2]
     imu_time = imu_data[0]
 
+    vic_list = [1,2,3,4,5,6,7,8,9]
+    cam_list = [1,2,8,9,10,11]
+
     # Defining how many samples available
     num_sample_imu = imu_data.shape[1]
-    num_sample_vic = vic_data['ts'][0].shape[0]
+    if int(dataset) in vic_list:
+        num_sample_vic = vic_data['ts'][0].shape[0]
 
     # Calibrate the IMU data based on the first few seconds (frequency approximately 100Hz)
     calibrated_imu = ic.imu_calibration(imu_data, 300)
@@ -37,37 +41,31 @@ def motion_predict(dataset):
     q_torch = torch.stack(all_q)
 
     # Prepare data before optimization and after optimization for later plotting
-    num_of_epoch = 10
+    num_of_epoch = 15
     step_length  = 0.1
     predicted_q = q_torch
     predicted_q_opt = oe.gradient_descent(q_torch, calibrated_imu, num_of_epoch, step_length, dataset)
 
-    # Train for 5 more times with less step sizes
-    num_of_epoch = 5
-    step_length  = 0.01
-    predicted_q_opt = oe.gradient_descent(predicted_q_opt, calibrated_imu, num_of_epoch, step_length, dataset)
-
     # Converting quaternion values to rotation matrices, then convert to roll/pitch/yaw values in degrees
     predicted_rotation_matrices = np.array([qc.quaternion_to_rotation_matrix(q).detach().numpy() for q in predicted_q])
     predicted_angles_rad = np.array([eul.mat2euler(np.asarray(R)) for R in predicted_rotation_matrices])
-    predicted_roll =    np.degrees(predicted_angles_rad[:, 0])
-    predicted_pitch =   np.degrees(predicted_angles_rad[:, 1])
-    predicted_yaw =     np.degrees(predicted_angles_rad[:, 2])
+    predicted_roll =    np.degrees(predicted_angles_rad[:, 0]).round(3)
+    predicted_pitch =   np.degrees(predicted_angles_rad[:, 1]).round(3)
+    predicted_yaw =     np.degrees(predicted_angles_rad[:, 2]).round(3)
 
     # Converting optimized quanternion values to rotation matrices, and then to roll/pitch/yaw values in degrees
     predicted_rotation_matrices_opt = np.array([qc.quaternion_to_rotation_matrix(q).detach().numpy() for q in predicted_q_opt])
     predicted_angles_rad_opt = np.array([eul.mat2euler(np.asarray(R)) for R in predicted_rotation_matrices_opt])
-    predicted_roll_opt =    np.degrees(predicted_angles_rad_opt[:, 0])
-    predicted_pitch_opt =   np.degrees(predicted_angles_rad_opt[:, 1])
-    predicted_yaw_opt =     np.degrees(predicted_angles_rad_opt[:, 2])
+    predicted_roll_opt =    np.degrees(predicted_angles_rad_opt[:, 0]).round(3)
+    predicted_pitch_opt =   np.degrees(predicted_angles_rad_opt[:, 1]).round(3)
+    predicted_yaw_opt =     np.degrees(predicted_angles_rad_opt[:, 2]).round(3)
 
-    vic_list = [1,2,3,4,5,6,7,8,9]
     if int(dataset) in vic_list:
         # Converting rotation matrices got from VICON data and converting to roll/pitch/yaw values in degrees
         true_angles_rad = np.array([eul.mat2euler(vic_data['rots'][:, :, i]) for i in range(num_sample_vic)])
-        true_roll  =    np.degrees(true_angles_rad[:, 0])
-        true_pitch =    np.degrees(true_angles_rad[:, 1])
-        true_yaw   =    np.degrees(true_angles_rad[:, 2])
+        true_roll  =    np.degrees(true_angles_rad[:, 0]).round(3)
+        true_pitch =    np.degrees(true_angles_rad[:, 1]).round(3)
+        true_yaw   =    np.degrees(true_angles_rad[:, 2]).round(3)
 
         # Get the timeline of IMU and VICON data, and align them to avoid drifting in plotting
         imu_time = imu_data[0]
@@ -76,7 +74,6 @@ def motion_predict(dataset):
         aligned_true_pitch = np.interp(imu_time, vic_time, true_pitch)
         aligned_true_yaw   = np.interp(imu_time, vic_time, true_yaw)
 
-    cam_list = [1,2,8,9,10,11]
     if int(dataset) in cam_list:
         predicted_rotation_matrices_opt = predicted_rotation_matrices_opt.transpose(1,2,0)
 

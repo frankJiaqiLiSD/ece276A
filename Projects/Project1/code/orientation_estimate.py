@@ -44,10 +44,12 @@ def gradient_descent(q_array, imu_data, num_of_epoch, step_length, dataset):
         new_loss = cost_function(new_q_array, imu_data).item()
 
         if new_loss < prev_loss:
-            q = new_q_array
+            q = new_q_array.detach()
             prev_loss = new_loss
+        else:
+            step_length *= 0.5
         
-        loss.append(prev_loss)
+        loss.append(new_loss)
 
     plt.figure()
     plt.plot(loss, color = 'b')
