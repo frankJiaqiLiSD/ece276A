@@ -37,10 +37,10 @@ def motion_predict(dataset):
     q_torch = torch.stack(all_q)
 
     # Prepare data before optimization and after optimization for later plotting
-    num_of_epoch = 10
+    num_of_epoch = 15
     step_length = 0.1
     predicted_q = q_torch
-    predicted_q_opt = oe.gradient_descent(q_torch, calibrated_imu, num_of_epoch, step_length)
+    predicted_q_opt = oe.gradient_descent(q_torch, calibrated_imu, num_of_epoch, step_length, dataset)
 
     # Converting quaternion values to rotation matrices, then convert to roll/pitch/yaw values in degrees
     predicted_rotation_matrices = np.array([qc.quaternion_to_rotation_matrix(q).detach().numpy() for q in predicted_q])
@@ -85,20 +85,20 @@ def motion_predict(dataset):
     imu_rel  = imu_time - imu_data[0][0]
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10,6), sharex=True)
 
-    ax1.plot(imu_rel, predicted_roll, label='Predicted Roll', color = 'r')
-    ax1.plot(imu_rel, aligned_true_roll, label='True Roll', color = 'b')
-    ax1.plot(imu_rel, predicted_roll_opt, label='Predicted Roll Optimized', color = 'g')
-    ax1.legend()
+    ax1.set_title("True Roll(blue) vs Estimated Roll(red) vs Optimized Estimated Roll(green) in Degrees")
+    ax1.plot(imu_rel, predicted_roll, color = 'r')
+    ax1.plot(imu_rel, aligned_true_roll, color = 'b')
+    ax1.plot(imu_rel, predicted_roll_opt, color = 'g')
 
-    ax2.plot(imu_rel, predicted_pitch, label='Predicted Pitch', color = 'r')
-    ax2.plot(imu_rel, aligned_true_pitch, label='True Pitch', color = 'b')
-    ax2.plot(imu_rel, predicted_pitch_opt, label='Predicted Pitch Optimized', color = 'g')
-    ax2.legend()
+    ax2.set_title("True Pitch(blue) vs Estimated Pitch(red) vs Optimized Estimated Pitch(green) in Degrees")
+    ax2.plot(imu_rel, predicted_pitch, color = 'r')
+    ax2.plot(imu_rel, aligned_true_pitch, color = 'b')
+    ax2.plot(imu_rel, predicted_pitch_opt, color = 'g')
 
-    ax3.plot(imu_rel, predicted_yaw, label='Predicted Yaw', color = 'r')
-    ax3.plot(imu_rel, aligned_true_yaw, label='True Yaw', color = 'b')
-    ax3.plot(imu_rel, predicted_yaw_opt, label='Predicted Yaw Optimized', color = 'g')
-    ax3.legend()
+    ax3.set_title("True Yaw(blue) vs Estimated Yaw(red) vs Optimized Estimated Yaw(green) in Degrees")
+    ax3.plot(imu_rel, predicted_yaw, color = 'r')
+    ax3.plot(imu_rel, aligned_true_yaw, color = 'b')
+    ax3.plot(imu_rel, predicted_yaw_opt, color = 'g')
 
     plot_path = f"img/Dataset {str(dataset)}_rpy.png"
     fig.savefig(plot_path, dpi=200, bbox_inches="tight")
@@ -111,4 +111,4 @@ if __name__ == "__main__":
         motion_predict(str(dataset))
         t_end = time.time()
         elapsed = t_end - t_start
-        print(f"Dataset {dataset} finished. Elapsed Time: {elapsed}")
+        print("Dataset {}/{} finished. Elapsed Time: {:.2f}s. ".format(dataset, num_of_datasets, elapsed))

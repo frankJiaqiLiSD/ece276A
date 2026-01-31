@@ -1,5 +1,7 @@
 import quarernion_calculation as qc
 import torch
+import os
+import matplotlib.pyplot as plt
 
 def cost_function(q_array, imu_data):
     motion_model_error = 0
@@ -29,13 +31,24 @@ def gradient(q_array, imu_data):
     grad_tensor = torch.autograd.functional.jacobian(cost_wrapper, q_array)    
     return grad_tensor
 
-def gradient_descent(q_array, imu_data, num_of_epoch, step_length):
+def gradient_descent(q_array, imu_data, num_of_epoch, step_length, dataset):
     q = q_array.detach().clone()
+    loss = []
 
     for _ in range(num_of_epoch):
         grad = gradient(q, imu_data)
         new_q_array = q - step_length*grad
         norm = torch.norm(new_q_array, dim=1, keepdim=True)
         q = new_q_array / norm
+        loss.append(cost_function(q, imu_data).item())
 
+    plt.figure()
+    plt.plot(loss, color = 'b')
+    plt.title(f"Loss for Dataset {dataset}")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    os.makedirs("img", exist_ok=True)
+    save_path = f"img/Dataset {str(dataset)}_loss.png"
+    plt.savefig(save_path, dpi=200, bbox_inches="tight")
+    plt.close()
     return q.detach()
